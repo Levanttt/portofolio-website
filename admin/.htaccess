@@ -1,0 +1,19 @@
+# .htaccess (di dalam /admin)
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Pastikan URL diakses lewat index.php
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^(.*)$ index.php/$1 [L]
+
+    # Blok akses langsung ke file sensitif
+    <FilesMatch "\.(env|json|sql|config|ini|log|bak|zip)$">
+        Order allow,deny
+        Deny from all
+    </FilesMatch>
+</IfModule>
+
+# Nonaktifkan directory listing
+Options -Indexes

@@ -1,0 +1,19 @@
+# === IGNORE FILE SENSITIF ===
+config/database.php
+hash.php
+
+# === FOLDER & FILE OTOMATIS / LOKAL ===
+.vscode/
+.idea/
+*.log
+*.env
+.DS_Store
+Thumbs.db
+
+# === DEPENDENCIES (kalau nanti pakai composer / npm) ===
+vendor/
+node_modules/
+
+# === BACKUP / CACHE ===
+*.bak
+*.tmp
