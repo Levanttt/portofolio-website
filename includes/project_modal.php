@@ -115,11 +115,13 @@ $gallery = !empty($project['gallery_images']) ? pgArrayToPhp($project['gallery_i
                 <?php if (!empty($features)): ?>
                 <div class="mb-6">
                     <h3 class="text-lg font-bold text-white mb-3">Key Features</h3>
-                    <ul class="space-y-2">
+                    <ul class="space-y-3">
                         <?php foreach ($features as $feature): ?>
-                            <li class="flex items-start gap-2 text-gray-300">
-                                <i data-feather="check-circle" class="w-5 h-5 text-indigo-400 flex-shrink-0 mt-0.5"></i>
-                                <span><?= htmlspecialchars($feature) ?></span>
+                            <li class="flex items-start gap-3 text-gray-300">
+                                <div class="flex-shrink-0 w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center mt-0.5">
+                                    <i data-feather="check" class="w-4 h-4 text-white"></i>
+                                </div>
+                                <span class="leading-relaxed"><?= htmlspecialchars(trim($feature)) ?></span>
                             </li>
                         <?php endforeach; ?>
                     </ul>

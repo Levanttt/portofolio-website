@@ -59,12 +59,11 @@ function saveContactMessage($name, $email, $message) {
     return execute($sql, [$name, $email, $message]);
 }
 
-// Get role badge color
 function getRoleBadgeColor($role) {
     $colors = [
         'game_design' => 'bg-indigo-500',
         'programming' => 'bg-purple-500',
-        'technical_art' => 'bg-blue-500',
+        'project_manager' => 'bg-blue-500',
         'narrative' => 'bg-green-500',
         'design' => 'bg-pink-500'
     ];
@@ -72,12 +71,11 @@ function getRoleBadgeColor($role) {
     return $colors[$role] ?? 'bg-gray-500';
 }
 
-// Get role name
 function getRoleName($role) {
     $names = [
         'game_design' => 'Game Design',
         'programming' => 'Programming',
-        'technical_art' => 'Technical Art',
+        'project_manager' => 'Project Manager',
         'narrative' => 'Narrative',
         'design' => 'Design'
     ];
@@ -95,13 +93,38 @@ function clean($data) {
 
 // Format PostgreSQL array to PHP array
 function pgArrayToPhp($pgArray) {
-    if (empty($pgArray) || $pgArray === '{}') {
+    if (empty($pgArray) || $pgArray === '{}' || $pgArray === 'NULL') {
         return [];
     }
     
-    // Remove {} and split by comma
+    // Remove outer braces
     $pgArray = trim($pgArray, '{}');
-    return array_map('trim', explode(',', $pgArray));
+    
+    // Split by comma, but respect quoted strings
+    $result = [];
+    $current = '';
+    $inQuotes = false;
+    $len = strlen($pgArray);
+    
+    for ($i = 0; $i < $len; $i++) {
+        $char = $pgArray[$i];
+        
+        if ($char === '"' && ($i === 0 || $pgArray[$i-1] !== '\\')) {
+            $inQuotes = !$inQuotes;
+        } elseif ($char === ',' && !$inQuotes) {
+            $result[] = trim($current, ' "');
+            $current = '';
+        } else {
+            $current .= $char;
+        }
+    }
+    
+    // Add last item
+    if ($current !== '') {
+        $result[] = trim($current, ' "');
+    }
+    
+    return array_filter($result);
 }
 
 // Get current page

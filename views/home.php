@@ -24,9 +24,8 @@
             <?php endif; ?>
         </div>
         <div class="flex justify-center gap-4 text-gray-400 flex-wrap">
-            <span class="flex items-center"><i data-feather="cpu" class="mr-2 text-indigo-400"></i> Game Developer</span>
-            <span class="flex items-center"><i data-feather="code" class="mr-2 text-purple-400"></i> Programmer</span>
-            <span class="flex items-center"><i data-feather="gamepad-2" class="mr-2 text-indigo-400"></i> Game Designer</span>
+            <span class="flex items-center"><i data-feather="edit-3" class="mr-2 text-indigo-400"></i> Game Designer</span>
+            <span class="flex items-center"><i data-feather="code" class="mr-2 text-purple-400"></i> Game Programmer</span>
         </div>
     </div>
     <div class="absolute bottom-10 left-0 right-0 flex justify-center animate-bounce">

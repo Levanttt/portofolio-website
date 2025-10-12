@@ -27,7 +27,7 @@ $otherProjects = fetchAll("SELECT * FROM projects WHERE category != 'game' ORDER
             </div>
             <div class="flex items-center">
                 <div class="w-4 h-4 rounded-full bg-blue-500 mr-2"></div>
-                <span class="text-gray-300 text-sm">Technical Art</span>
+                <span class="text-gray-300 text-sm">Project Manager</span>
             </div>
             <div class="flex items-center">
                 <div class="w-4 h-4 rounded-full bg-green-500 mr-2"></div>
@@ -35,7 +35,7 @@ $otherProjects = fetchAll("SELECT * FROM projects WHERE category != 'game' ORDER
             </div>
             <div class="flex items-center">
                 <div class="w-4 h-4 rounded-full bg-pink-500 mr-2"></div>
-                <span class="text-gray-300 text-sm">Other</span>
+                <span class="text-gray-300 text-sm">UI/UX Design</span>
             </div>
         </div>
 
@@ -49,20 +49,20 @@ $otherProjects = fetchAll("SELECT * FROM projects WHERE category != 'game' ORDER
                 $projectId = 'project-' . $project['id'];
             ?>
             <div class="project-card bg-gray-800 rounded-xl overflow-hidden transition-all duration-300 cursor-pointer"
-                onclick="openProjectModal('<?= $projectId ?>')">
+                 onclick="openProjectModal('<?= $projectId ?>')">
                 <div class="relative overflow-hidden h-48 group">
                     <!-- Static Image -->
                     <img src="<?= $project['image_url'] ?>" 
-                        alt="<?= htmlspecialchars($project['title']) ?>" 
-                        class="w-full h-full object-cover transition-opacity duration-300"
-                        id="static-<?= $projectId ?>">
+                         alt="<?= htmlspecialchars($project['title']) ?>" 
+                         class="w-full h-full object-cover transition-opacity duration-300"
+                         id="static-<?= $projectId ?>">
                     
                     <!-- Hover Preview (GIF/Video) -->
                     <?php if (!empty($project['media_url']) && $project['media_type'] === 'gif'): ?>
                     <img src="<?= $project['media_url'] ?>" 
-                        alt="<?= htmlspecialchars($project['title']) ?> preview" 
-                        class="w-full h-full object-cover absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                        loading="lazy">
+                         alt="<?= htmlspecialchars($project['title']) ?> preview" 
+                         class="w-full h-full object-cover absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                         loading="lazy">
                     <?php endif; ?>
                     
                     <div class="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/30 to-transparent"></div>
@@ -117,17 +117,17 @@ $otherProjects = fetchAll("SELECT * FROM projects WHERE category != 'game' ORDER
                 $projectId = 'project-' . $project['id'];
             ?>
             <div class="project-card bg-gray-800 rounded-xl overflow-hidden transition-all duration-300 cursor-pointer"
-                onclick="openProjectModal('<?= $projectId ?>')">
+                 onclick="openProjectModal('<?= $projectId ?>')">
                 <div class="relative overflow-hidden h-48 group">
                     <img src="<?= $project['image_url'] ?>" 
-                        alt="<?= htmlspecialchars($project['title']) ?>" 
-                        class="w-full h-full object-cover transition-opacity duration-300">
+                         alt="<?= htmlspecialchars($project['title']) ?>" 
+                         class="w-full h-full object-cover transition-opacity duration-300">
                     
                     <?php if (!empty($project['media_url']) && $project['media_type'] === 'gif'): ?>
                     <img src="<?= $project['media_url'] ?>" 
-                        alt="<?= htmlspecialchars($project['title']) ?> preview" 
-                        class="w-full h-full object-cover absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                        loading="lazy">
+                         alt="<?= htmlspecialchars($project['title']) ?> preview" 
+                         class="w-full h-full object-cover absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                         loading="lazy">
                     <?php endif; ?>
                     
                     <div class="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/30 to-transparent"></div>
