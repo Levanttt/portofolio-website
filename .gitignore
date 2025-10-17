@@ -17,3 +17,6 @@ node_modules/
 # === BACKUP / CACHE ===
 *.bak
 *.tmp
+
+# Keep the compiled CSS
+# !assets/css/tailwind.css

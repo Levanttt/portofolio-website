@@ -1,12 +1,10 @@
 <?php
-// admin/index.php — Secure Admin Panel
+// admin/index.php – Secure Admin Panel with Sortable Projects
 session_start();
 require_once __DIR__ . '/../includes/functions.php';
 
 // ========== CONFIGURATION ==========
-// gunakan hash statis yang di-generate sekali (jangan panggil password_hash() di runtime)
-$ADMIN_PASSWORD_HASH = '$2a$12$PzAMGKwLw8P5LyWnY56KneaSLLphaa0J3peOyQ9uqXYG8l/Fs043q'; // <-- tempel hasil hash di sini
-
+$ADMIN_PASSWORD_HASH = '$2a$12$PzAMGKwLw8P5LyWnY56KneaSLLphaa0J3peOyQ9uqXYG8l/Fs043q';
 
 // ========== AUTH HANDLING ==========
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
@@ -78,6 +76,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header('Location: index.php');
         exit;
     }
+
+    if (isset($_POST['delete_skill']) && isset($_POST['skill_id'])) {
+        execute("DELETE FROM skills WHERE id = ?", [intval($_POST['skill_id'])]);
+        $_SESSION['success'] = "Skill deleted successfully!";
+        header('Location: index.php#skills');
+        exit;
+    }
     
     if (isset($_POST['mark_read']) && isset($_POST['message_id'])) {
         execute("UPDATE contact_messages SET is_read = true WHERE id = ?", [intval($_POST['message_id'])]);
@@ -87,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // ========== DATA FETCHING ==========
-$projects = getProjects();
+$projects = getProjects(); // Now sorted by display_order
 $messages = fetchAll("SELECT * FROM contact_messages ORDER BY created_at DESC LIMIT 50");
 $unreadCount = fetchOne("SELECT COUNT(*) as count FROM contact_messages WHERE is_read = false")['count'] ?? 0;
 $stats = [
@@ -105,6 +110,25 @@ $stats = [
     <title>Admin Panel - Portfolio</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/feather-icons"></script>
+    <!-- SortableJS for Drag & Drop -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <style>
+        .sortable-ghost {
+            opacity: 0.4;
+            background: #4f46e5 !important;
+        }
+        .sortable-drag {
+            opacity: 1;
+            cursor: grabbing !important;
+        }
+        .drag-handle {
+            cursor: grab;
+            user-select: none;
+        }
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+    </style>
 </head>
 <body class="bg-gray-900 text-white">
     <nav class="bg-gray-800 border-b border-gray-700 px-6 py-4">
@@ -123,6 +147,11 @@ $stats = [
             <?= htmlspecialchars($_SESSION['success']); unset($_SESSION['success']); ?>
         </div>
         <?php endif; ?>
+
+        <!-- Toast Notification for Sort Success -->
+        <div id="sortToast" class="hidden fixed top-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50">
+            <span id="sortToastMessage">Order updated successfully!</span>
+        </div>
 
         <!-- STATS -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -157,6 +186,10 @@ $stats = [
                         <span class="bg-red-600 px-2 py-1 rounded-full text-xs ml-2"><?= $unreadCount ?></span>
                     <?php endif; ?>
                 </button>
+                <button onclick="showTab('skills')" id="tab-skills" 
+                        class="tab-button px-4 py-2 border-b-2 border-transparent text-gray-400 hover:text-white">
+                    Skills
+                </button>
             </nav>
         </div>
 
@@ -164,7 +197,13 @@ $stats = [
         <div id="content-projects" class="tab-content">
             <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
                 <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold">Projects</h2>
+                    <div>
+                        <h2 class="text-2xl font-bold">Projects</h2>
+                        <p class="text-gray-400 text-sm mt-1">
+                            <i data-feather="move" class="w-4 h-4 inline"></i>
+                            Drag rows to reorder
+                        </p>
+                    </div>
                     <a href="project_form.php" 
                         class="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded inline-block">+ Add Project</a>
                 </div>
@@ -173,6 +212,7 @@ $stats = [
                     <table class="w-full">
                         <thead>
                             <tr class="border-b border-gray-700">
+                                <th class="text-left py-3 px-2 w-8"></th>
                                 <th class="text-left py-3 px-4">Title</th>
                                 <th class="text-left py-3 px-4">Category</th>
                                 <th class="text-left py-3 px-4">Year</th>
@@ -180,11 +220,16 @@ $stats = [
                                 <th class="text-left py-3 px-4">Actions</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="sortable-projects">
                             <?php foreach ($projects as $project): ?>
-                            <tr class="border-b border-gray-700 hover:bg-gray-750">
+                            <tr class="border-b border-gray-700 hover:bg-gray-750 transition" data-id="<?= $project['id'] ?>">
+                                <td class="py-3 px-2">
+                                    <div class="drag-handle text-gray-500 hover:text-gray-300">
+                                        <i data-feather="menu" class="w-5 h-5"></i>
+                                    </div>
+                                </td>
                                 <td class="py-3 px-4 flex items-center gap-3">
-                                    <img src="<?= htmlspecialchars($project['image_url']) ?>" alt="" class="w-12 h-12 rounded object-cover">
+                                    <img src="../public/<?= htmlspecialchars($project['image_url']) ?>" alt="" class="w-12 h-12 rounded object-cover">
                                     <span class="font-medium"><?= htmlspecialchars($project['title']) ?></span>
                                 </td>
                                 <td class="py-3 px-4">
@@ -211,7 +256,7 @@ $stats = [
                             </tr>
                             <?php endforeach; ?>
                             <?php if (empty($projects)): ?>
-                                <tr><td colspan="5" class="text-center py-6 text-gray-400">No projects yet.</td></tr>
+                                <tr><td colspan="6" class="text-center py-6 text-gray-400">No projects yet.</td></tr>
                             <?php endif; ?>
                         </tbody>
                     </table>
@@ -263,17 +308,181 @@ $stats = [
         </div>
     </div>
 
+    <!-- SKILLS TAB -->
+    <div id="content-skills" class="tab-content hidden">
+        <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Skills Management</h2>
+                <a href="skills_form.php" 
+                    class="bg-blue-700 hover:bg-blue-800 px-4 py-2 rounded inline-block">+ Add Skill</a>
+            </div>
+            
+            <?php 
+            $skills = getSkills();
+            $skillsByCategory = [];
+            foreach ($skills as $skill) {
+                $skillsByCategory[$skill['category']][] = $skill;
+            }
+            ?>
+            
+            <?php if (!empty($skillsByCategory)): ?>
+                <?php foreach ($skillsByCategory as $category => $categorySkills): ?>
+                <div class="mb-8">
+                    <h3 class="text-xl font-bold text-blue-400 mb-4 capitalize flex items-center gap-2">
+                        <i data-feather="folder" class="w-5 h-5"></i>
+                        <?= ucfirst($category) ?>
+                        <span class="text-sm text-gray-500">(<?= count($categorySkills) ?> skills)</span>
+                    </h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <?php foreach ($categorySkills as $skill): ?>
+                        <div class="bg-gray-750 border border-gray-700 rounded-lg p-4 hover:border-blue-500 transition">
+                            <div class="flex items-start gap-3">
+                                <div class="bg-gray-800 p-3 rounded-lg">
+                                    <i data-feather="<?= htmlspecialchars($skill['icon']) ?>" 
+                                    class="w-6 h-6 text-blue-400"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <h4 class="font-bold text-white"><?= htmlspecialchars($skill['name']) ?></h4>
+                                    <div class="mt-2">
+                                        <div class="flex justify-between text-xs text-gray-400 mb-1">
+                                            <span>Proficiency</span>
+                                            <span><?= $skill['proficiency'] ?>%</span>
+                                        </div>
+                                        <div class="w-full bg-gray-700 rounded-full h-2">
+                                            <div class="bg-blue-500 h-2 rounded-full" 
+                                                style="width: <?= $skill['proficiency'] ?>%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex gap-2 mt-4 pt-4 border-t border-gray-700">
+                                <a href="skills_form.php?id=<?= $skill['id'] ?>" 
+                                class="flex-1 text-center text-blue-400 hover:text-blue-300 text-sm py-2 bg-gray-800 rounded">
+                                    <i data-feather="edit-2" class="w-4 h-4 inline"></i> Edit
+                                </a>
+                                <form method="POST" onsubmit="return confirm('Delete this skill?')" class="flex-1">
+                                    <input type="hidden" name="skill_id" value="<?= $skill['id'] ?>">
+                                    <button type="submit" name="delete_skill" 
+                                            class="w-full text-red-400 hover:text-red-300 text-sm py-2 bg-gray-800 rounded">
+                                        <i data-feather="trash-2" class="w-4 h-4 inline"></i> Delete
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <p class="text-gray-400 text-center py-8">No skills yet. Add your first skill!</p>
+            <?php endif; ?>
+        </div>
+    </div>
+
     <script>
-        feather.replace();
+        
+        // Tab switching
         function showTab(tab) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             document.querySelectorAll('.tab-button').forEach(el => {
-                el.classList.remove('border-indigo-500', 'text-indigo-400');
+                el.classList.remove('border-blue-500', 'text-blue-400');
                 el.classList.add('border-transparent', 'text-gray-400');
             });
             document.getElementById('content-' + tab).classList.remove('hidden');
-            document.getElementById('tab-' + tab).classList.add('border-indigo-500', 'text-indigo-400');
+            document.getElementById('tab-' + tab).classList.add('border-blue-500', 'text-blue-400');
+            
+            // Update URL hash
+            window.location.hash = tab;
+            
+            // Refresh feather icons
+            feather.replace();
         }
+
+        window.addEventListener('DOMContentLoaded', function() {
+            const hash = window.location.hash.substring(1);
+            if (hash && ['projects', 'messages', 'skills'].includes(hash)) {
+                showTab(hash);
+            }
+        });
+
+        // Initialize Sortable for projects
+        const el = document.getElementById('sortable-projects');
+        if (el) {
+            const sortable = new Sortable(el, {
+                handle: '.drag-handle',
+                animation: 150,
+                ghostClass: 'sortable-ghost',
+                dragClass: 'sortable-drag',
+                onEnd: function(evt) {
+                    // Get new order
+                    const rows = document.querySelectorAll('#sortable-projects tr[data-id]');
+                    const order = Array.from(rows).map(row => row.getAttribute('data-id'));
+                    
+                    console.log('Sending order:', order); // Debug
+                    
+                    // Send to server
+                    fetch('update_order.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ order: order })
+                    })
+                    .then(response => {
+                        // Log raw response for debugging
+                        console.log('Response status:', response.status);
+                        console.log('Response headers:', response.headers.get('content-type'));
+                        
+                        // Check if response is JSON
+                        const contentType = response.headers.get('content-type');
+                        if (!contentType || !contentType.includes('application/json')) {
+                            return response.text().then(text => {
+                                console.error('Non-JSON response:', text);
+                                throw new Error('Server returned non-JSON response. Check PHP errors.');
+                            });
+                        }
+                        
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('Server response:', data); // Debug
+                        
+                        if (data.success) {
+                            showToast('✓ Order updated successfully! (' + data.updated_count + ' items)', 'success');
+                        } else {
+                            showToast('✗ Failed: ' + (data.error || 'Unknown error'), 'error');
+                            console.error('Server error:', data.error);
+                        }
+                    })
+                    .catch(error => {
+                        showToast('✗ Network error: ' + error.message, 'error');
+                        console.error('Fetch error:', error);
+                    });
+                }
+            });
+        }
+
+        // Toast notification
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('sortToast');
+            const toastMessage = document.getElementById('sortToastMessage');
+            
+            toastMessage.textContent = message;
+            toast.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 ${
+                type === 'success' ? 'bg-green-600' : 'bg-red-600'
+            } text-white`;
+            
+            toast.classList.remove('hidden');
+            
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3000);
+        }
+
+        // Initialize feather icons
+        feather.replace();
     </script>
 </body>
 </html>

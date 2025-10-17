@@ -1,7 +1,5 @@
 <?php
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-
+// admin/project_form.php - Add/Edit Project Form (FIXED GALLERY VERSION)
 session_start();
 
 // Check admin login
@@ -36,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $project_url = clean($_POST['project_url'] ?? '');
     $github_url = clean($_POST['github_url'] ?? '');
     $demo_url = clean($_POST['demo_url'] ?? '');
-    $is_featured = isset($_POST['is_featured']) ? 't' : 'f'; 
+    $is_featured = isset($_POST['is_featured']) ? true : false;
     
     // Media type and URL
     $media_type = clean($_POST['media_type'] ?? 'image');
@@ -54,17 +52,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($tags)) $errors[] = "At least one tag is required";
     if (empty($roles)) $errors[] = "At least one role is required";
     
-    // Handle image upload
+    // Handle main thumbnail upload
     $image_url = $project['image_url'] ?? '';
     
     if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
         $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
         $filename = $_FILES['image']['name'];
         $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
-
-        echo "Filename: " . $filename . "<br>";
-        echo "Extension: " . $ext . "<br>";
-        echo "Upload path: " . __DIR__ . '/../public/images/' . "<br>";
         
         if (!in_array($ext, $allowed)) {
             $errors[] = "Invalid image format. Allowed: jpg, jpeg, png, gif, webp";
@@ -85,37 +79,73 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     
+    // Handle gallery images upload (multiple files)
+    $galleryImages = [];
+    
+    // Keep existing gallery if editing
+    if ($isEdit && !empty($project['gallery_images'])) {
+        $galleryImages = pgArrayToPhp($project['gallery_images']);
+    }
+    
+    // Process new gallery uploads
+    if (isset($_FILES['gallery']) && is_array($_FILES['gallery']['tmp_name'])) {
+        $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+        
+        foreach ($_FILES['gallery']['tmp_name'] as $key => $tmp_name) {
+            if ($_FILES['gallery']['error'][$key] === UPLOAD_ERR_OK) {
+                $filename = $_FILES['gallery']['name'][$key];
+                $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+                
+                if (in_array($ext, $allowed)) {
+                    $newFilename = uniqid() . '_' . time() . '_' . $key . '.' . $ext;
+                    $uploadPath = __DIR__ . '/../public/images/' . $newFilename;
+                    
+                    if (move_uploaded_file($tmp_name, $uploadPath)) {
+                        $galleryImages[] = 'images/' . $newFilename;
+                    }
+                }
+            }
+        }
+    }
+    
     // If no errors, save to database
     if (empty($errors)) {
-        // Convert arrays to PostgreSQL array format (FIXED)
-        $tagsArray = empty($tags) ? null : '{' . implode(',', array_map(function($tag) {
-            return '"' . str_replace(['"', '\\'], ['\"', '\\\\'], trim($tag)) . '"';
+        // Convert arrays to PostgreSQL array format
+        $tagsArray = '{' . implode(',', array_map(function($tag) {
+            return '"' . str_replace('"', '\"', $tag) . '"';
         }, $tags)) . '}';
-
-        $rolesArray = empty($roles) ? null : '{' . implode(',', $roles) . '}';
-
-        $techStackArray = empty($tech_stack) ? null : '{' . implode(',', array_map(function($tech) {
-            return '"' . str_replace(['"', '\\'], ['\"', '\\\\'], trim($tech)) . '"';
+        
+        $rolesArray = '{' . implode(',', $roles) . '}';
+        
+        $techStackArray = empty($tech_stack) ? '{}' : '{' . implode(',', array_map(function($tech) {
+            return '"' . str_replace('"', '\"', $tech) . '"';
         }, $tech_stack)) . '}';
-
-        $featuresArray = empty($features) ? null : '{' . implode(',', array_map(function($feat) {
-            return '"' . str_replace(['"', '\\'], ['\"', '\\\\'], trim($feat)) . '"';
+        
+        $featuresArray = empty($features) ? '{}' : '{' . implode(',', array_map(function($feat) {
+            return '"' . str_replace('"', '\"', $feat) . '"';
         }, $features)) . '}';
-
-        $galleryArray = null; // Set null instead of empty array
+        
+        // FIX: Convert gallery images to PostgreSQL array format
+        $galleryArray = empty($galleryImages) ? '{}' : '{' . implode(',', array_map(function($img) {
+            return '"' . str_replace('"', '\"', $img) . '"';
+        }, $galleryImages)) . '}';
         
         if ($isEdit) {
-            // Update existing project
+            // Update existing project - FIXED: added gallery_images field
             $sql = "UPDATE projects SET 
                     title = ?, description = ?, year = ?, category = ?,
                     tags = ?, roles = ?, image_url = ?, project_url = ?, 
                     github_url = ?, demo_url = ?, is_featured = ?,
                     media_type = ?, media_url = ?, tech_stack = ?, features = ?,
-                    updated_at = NOW()
+                    gallery_images = ?, updated_at = NOW()
                     WHERE id = ?";
-            $params = [$title, $description, $year, $category, $tagsArray, $rolesArray, 
-                      $image_url, $project_url, $github_url, $demo_url, $is_featured,
-                      $media_type, $media_url, $techStackArray, $featuresArray, $_GET['id']];
+            $params = [
+                $title, $description, $year, $category, 
+                $tagsArray, $rolesArray, $image_url, $project_url, 
+                $github_url, $demo_url, $is_featured ? 't' : 'f',
+                $media_type, $media_url, $techStackArray, $featuresArray,
+                $galleryArray, $_GET['id']  // FIXED: added gallery_array parameter
+            ];
             
             if (execute($sql, $params)) {
                 $_SESSION['success'] = "Project updated successfully!";
@@ -129,19 +159,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $sql = "INSERT INTO projects (title, description, year, category, tags, roles, image_url, project_url, 
                     github_url, demo_url, is_featured, media_type, media_url, tech_stack, features, gallery_images)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-            $params = [$title, $description, $year, $category, $tagsArray, $rolesArray, 
-                      $image_url, $project_url, $github_url, $demo_url, $is_featured,
-                      $media_type, $media_url, $techStackArray, $featuresArray, $galleryArray];
+            $params = [
+                $title, $description, $year, $category, $tagsArray, $rolesArray, 
+                $image_url, $project_url, $github_url, $demo_url, $is_featured ? 't' : 'f',
+                $media_type, $media_url, $techStackArray, $featuresArray, $galleryArray  // FIXED: using actual gallery data
+            ];
             
-                    
             if (execute($sql, $params)) {
                 $_SESSION['success'] = "Project created successfully!";
                 header('Location: index.php');
                 exit;
             } else {
-                // Show detailed error
-                $errors[] = "Failed to create project. Check database logs.";
-                error_log("SQL Error: " . print_r($params, true));
+                $errors[] = "Failed to create project";
             }
         }
     }
@@ -295,8 +324,8 @@ $formData = [
                         'game_design' => 'Game Design',
                         'programming' => 'Programming',
                         'project_manager' => 'Project Manager',
-                        'narrative' => 'Narrative',
-                        'design' => 'UI/UX Design'
+                        'web_developer' => 'Web Developer',
+                        'ui_ux' => 'UI/UX Design'
                     ];
                     foreach ($availableRoles as $value => $label): 
                     ?>
@@ -312,17 +341,52 @@ $formData = [
 
             <!-- Image Upload -->
             <div class="mb-6">
-                <label class="block text-gray-300 mb-2 font-medium">Project Thumbnail <?= $isEdit ? '' : '*' ?></label>
+                <label class="block text-gray-300 mb-2 font-medium">Main Thumbnail <?= $isEdit ? '' : '*' ?></label>
                 <?php if ($isEdit && !empty($formData['image_url'])): ?>
                     <div class="mb-3">
                         <img src="../public/<?= htmlspecialchars($formData['image_url']) ?>" alt="Current" 
                              class="w-48 h-32 object-cover rounded border border-gray-600">
-                        <p class="text-gray-400 text-sm mt-1">Current image (upload new to replace)</p>
+                        <p class="text-gray-400 text-sm mt-1">Current thumbnail (upload new to replace)</p>
                     </div>
                 <?php endif; ?>
                 <input type="file" name="image" accept="image/*" <?= $isEdit ? '' : 'required' ?>
                        class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                <p class="text-gray-400 text-sm mt-1">Supported: JPG, PNG, GIF, WEBP (Max 5MB)</p>
+                <p class="text-gray-400 text-sm mt-1">Main project image. Supported: JPG, PNG, GIF, WEBP</p>
+            </div>
+
+            <!-- Gallery Images Upload (FIXED!) -->
+            <div class="mb-6 bg-gray-700 p-6 rounded-lg border-2 border-purple-600">
+                <label class="block text-gray-300 mb-3 font-medium text-lg">🖼️ Screenshot Gallery (Optional)</label>
+                <p class="text-gray-400 text-sm mb-4">Upload additional screenshots to showcase your project (max 5 images)</p>
+                
+                <?php if ($isEdit && !empty($project['gallery_images'])): 
+                    $existingGallery = pgArrayToPhp($project['gallery_images']);
+                    if (!empty($existingGallery)):
+                ?>
+                    <div class="mb-4">
+                        <p class="text-gray-300 text-sm mb-2">Current Gallery Images:</p>
+                        <div class="grid grid-cols-5 gap-2">
+                            <?php foreach ($existingGallery as $img): ?>
+                                <img src="../public/<?= htmlspecialchars($img) ?>" alt="Gallery" 
+                                     class="w-full h-20 object-cover rounded border border-gray-600">
+                            <?php endforeach; ?>
+                        </div>
+                        <p class="text-yellow-400 text-sm mt-2">⚠️ Upload new images will ADD to existing gallery</p>
+                    </div>
+                <?php 
+                    endif;
+                endif; 
+                ?>
+                
+                <input type="file" name="gallery[]" accept="image/*" multiple
+                       class="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                       onchange="previewGallery(this)">
+                <p class="text-gray-400 text-sm mt-2">
+                    💡 Tip: Select multiple images at once (Ctrl+Click or Cmd+Click). Best showcase: gameplay screenshots, UI, features, etc.
+                </p>
+                
+                <!-- Preview selected files -->
+                <div id="galleryPreview" class="mt-4 grid grid-cols-5 gap-2 hidden"></div>
             </div>
 
             <!-- Media Type Selection -->
@@ -532,6 +596,32 @@ $formData = [
         }
         
         toggleMediaInput();
+        
+        // Gallery preview function
+        function previewGallery(input) {
+            const preview = document.getElementById('galleryPreview');
+            preview.innerHTML = '';
+            
+            if (input.files && input.files.length > 0) {
+                preview.classList.remove('hidden');
+                
+                Array.from(input.files).slice(0, 5).forEach((file, index) => {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const div = document.createElement('div');
+                        div.className = 'relative';
+                        div.innerHTML = `
+                            <img src="${e.target.result}" class="w-full h-20 object-cover rounded border-2 border-purple-500">
+                            <span class="absolute top-1 right-1 bg-purple-600 text-white text-xs px-2 py-1 rounded">${index + 1}</span>
+                        `;
+                        preview.appendChild(div);
+                    };
+                    reader.readAsDataURL(file);
+                });
+            } else {
+                preview.classList.add('hidden');
+            }
+        }
         
         document.querySelector('form').addEventListener('submit', function(e) {
             if (selectedTags.length === 0) {
