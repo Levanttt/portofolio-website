@@ -308,7 +308,7 @@ $stats = [
         </div>
     </div>
 
-    <!-- SKILLS TAB -->
+   <!-- SKILLS TAB -->
     <div id="content-skills" class="tab-content hidden">
         <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
             <div class="flex justify-between items-center mb-6">
@@ -344,15 +344,11 @@ $stats = [
                                 </div>
                                 <div class="flex-1">
                                     <h4 class="font-bold text-white"><?= htmlspecialchars($skill['name']) ?></h4>
-                                    <div class="mt-2">
-                                        <div class="flex justify-between text-xs text-gray-400 mb-1">
-                                            <span>Proficiency</span>
-                                            <span><?= $skill['proficiency'] ?>%</span>
-                                        </div>
-                                        <div class="w-full bg-gray-700 rounded-full h-2">
-                                            <div class="bg-blue-500 h-2 rounded-full" 
-                                                style="width: <?= $skill['proficiency'] ?>%"></div>
-                                        </div>
+                                    <div class="mt-2 flex items-center gap-1">
+                                        <?php for ($i = 1; $i <= 5; $i++): ?>
+                                            <span class="<?= $i <= $skill['proficiency'] ? 'text-yellow-400' : 'text-gray-600' ?>">⭐</span>
+                                        <?php endfor; ?>
+                                        <span class="text-xs text-gray-500 ml-2">(<?= $skill['proficiency'] ?>/5)</span>
                                     </div>
                                 </div>
                             </div>

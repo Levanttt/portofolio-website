@@ -41,7 +41,7 @@ $hide_nav = ($current_page === 'project_modal.php');
         <div class="container mx-auto px-6 py-4">
             <div class="flex justify-between items-center">
                 <a href="index.php" class="text-2xl font-bold font-orbitron glow-text">
-                    <span class="text-blue-800">I</span>rfan<span class="text-blue-400">.</span>
+                    <span class="text-blue-400">My</span>Portfolio<span class="text-blue-400">.</span>
                 </a>
                 <div class="hidden md:flex space-x-8">
                     <a href="index.php" class="nav-link <?= isActive('home') ?> hover:text-blue-400">Home</a>

@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($name)) $errors[] = "Name is required";
     if (empty($icon)) $errors[] = "Icon is required";
     if (empty($category)) $errors[] = "Category is required";
-    if ($proficiency < 1 || $proficiency > 100) $errors[] = "Proficiency must be between 1-100";
+    if ($proficiency < 1 || $proficiency > 5) $errors[] = "Proficiency must be between 1-5";
     
     if (empty($errors)) {
         if ($isEdit) {
@@ -120,16 +120,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <div class="mb-6">
                 <label class="block text-gray-300 mb-2">
-                    Proficiency (1-100) * 
-                    <span class="text-gray-500 text-sm">Current: <span id="profValue"><?= $skill['proficiency'] ?? 70 ?></span>%</span>
+                    Proficiency Level (1-5 Stars) * 
+                    <span class="text-gray-500 text-sm">Current: <span id="profValue"><?= $skill['proficiency'] ?? 3 ?></span> ⭐</span>
                 </label>
-                <input type="range" name="proficiency" id="profRange" min="1" max="100" 
-                       value="<?= $skill['proficiency'] ?? 70 ?>"
-                       class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500">
-                <div class="flex justify-between text-xs text-gray-500 mt-1">
-                    <span>Beginner</span>
-                    <span>Intermediate</span>
-                    <span>Expert</span>
+                <input type="range" name="proficiency" id="profRange" min="1" max="5" step="1"
+                       value="<?= $skill['proficiency'] ?? 3 ?>"
+                       class="w-full h-3 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500">
+                <div class="grid grid-cols-5 gap-2 text-xs text-gray-400 mt-2">
+                    <div class="text-center">
+                        <div class="text-yellow-400 text-lg">⭐</div>
+                        <div>Beginner</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-yellow-400 text-lg">⭐⭐</div>
+                        <div>Learning</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-yellow-400 text-lg">⭐⭐⭐</div>
+                        <div>Proficient</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-yellow-400 text-lg">⭐⭐⭐⭐</div>
+                        <div>Expert</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-yellow-400 text-lg">⭐⭐⭐⭐⭐</div>
+                        <div>Master</div>
+                    </div>
+                </div>
+                <div class="flex justify-center gap-1 mt-4 p-4 bg-gray-700 rounded-lg" id="starPreview">
+                    <!-- Stars will be rendered by JS -->
                 </div>
             </div>
 
@@ -163,10 +183,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Proficiency slider
         const profRange = document.getElementById('profRange');
         const profValue = document.getElementById('profValue');
+        const starPreview = document.getElementById('starPreview');
+        
+        function updateStars(value) {
+            profValue.textContent = value;
+            
+            // Render stars with larger size
+            let stars = '';
+            for (let i = 1; i <= 5; i++) {
+                if (i <= value) {
+                    stars += '<span class="text-4xl text-yellow-400">⭐</span>';
+                } else {
+                    stars += '<span class="text-4xl text-gray-700">⭐</span>';
+                }
+            }
+            starPreview.innerHTML = stars;
+            
+            // Update proficiency label text
+            const labels = ['', 'Beginner', 'Learning', 'Proficient', 'Expert', 'Master'];
+            profValue.textContent = `${value} - ${labels[value]}`;
+        }
         
         profRange.addEventListener('input', function() {
-            profValue.textContent = this.value;
+            updateStars(parseInt(this.value));
         });
+        
+        // Initial render
+        updateStars(parseInt(profRange.value));
 
         // Initialize icons
         feather.replace();

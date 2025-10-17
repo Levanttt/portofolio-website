@@ -9,7 +9,7 @@ $profile = getProfile();
             <div class="flex flex-col md:flex-row justify-between items-center">
                 <div class="mb-4 md:mb-0">
                     <a href="index.php" class="text-2xl font-bold font-orbitron glow-text">
-                        <span class="text-indigo-500">My</span>Portfolio<span class="text-purple-500">.</span>
+                        <span class="text-blue-400">My</span>Portfolio<span class="text-purple-500">.</span>
                     </a>
                 </div>
                 <div class="flex space-x-6">
